@@ -119,7 +119,7 @@ function install {
 }
 
 function upload {
-  mpremote cp -r main.py halmspa :
+  mpremote cp -r main.py sauce :
 }
 
 
