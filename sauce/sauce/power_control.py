@@ -65,7 +65,7 @@ FAULT_LIM_2_PIN = const(0o4)
 FAULT_LIM_3_PIN = const(0o2)
 FAULT_LIM_4_PIN = const(0o0)
 
-FAULT_12V_1_PIN = const(0o16)
+FAULT_12V_1_PIN = const(0o13)
 FAULT_12V_2_PIN = const(0o11)
 
 PG_3V3_PIN = const(0o14)

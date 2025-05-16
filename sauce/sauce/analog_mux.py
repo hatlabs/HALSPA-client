@@ -1,6 +1,5 @@
 from typing import Callable
 
-import ads1x15
 from machine import I2C
 from micropython import const
 
@@ -76,34 +75,3 @@ class AnalogMux:
 
     def get_pin_selector(self, mux_num, pin):
         return lambda: self.select(mux_num, pin)
-
-
-class ADCChannel:
-    rb = 10000.0  # voltage divider bottom resistance
-
-    def __init__(self, adc: ads1x15.ADS1115, adc_channel: int, scale=1.0, rt=None):
-        self.adc = adc
-        self.adc_channel = adc_channel
-        self.scale = scale
-        if rt is not None:
-            self.scale = self.scale * (rt + self.rb) / self.rb
-
-    def read_raw(self):
-        return self.adc.read(channel1=self.adc_channel)
-
-    def read_v(self):
-        return self.scale * self.adc.raw_to_v(self.read_raw())
-
-
-class AnalogMuxADCChannel:
-    def __init__(self, select_pin_func: Callable[[], None], adc_channel: ADCChannel):
-        self.select_pin = select_pin_func
-        self.adc_channel = adc_channel
-
-    def read_raw(self):
-        self.select_pin()
-        return self.adc_channel.read_raw()
-
-    def read_v(self):
-        self.select_pin()
-        return self.adc_channel.read_v()

@@ -30,6 +30,19 @@ class TCA9535Pin:
         """Toggle the state of the pin."""
         self.tca9535.write_bit(self.pin, not self.read())
 
+    def configure(self, mode: int):
+        """
+        Configure the pin mode.
+
+        Args:
+            mode (int): The mode to set (0 for input, 1 for output).
+        """
+        if mode == 0:
+            self.tca9535.configuration |= 1 << self.pin
+        else:
+            self.tca9535.configuration &= ~(1 << self.pin)
+        self.tca9535.write_configuration(self.tca9535.configuration)
+
 
 class TCA9535:
     """TCA9535 I2C GPIO Expander Driver"""

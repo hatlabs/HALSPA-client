@@ -2,11 +2,12 @@ import time
 from typing import Any, Dict, Optional
 
 import serial
+from loguru import logger
 
 
-class HalspaClient:
+class REPL:
     """
-    Client for communicating with a HALSPA device running MicroPython.
+    Client for communicating with a MicroPython device.
     Handles connection, code execution, and response parsing.
     """
 
@@ -14,7 +15,7 @@ class HalspaClient:
         self, port: str | None = None, baudrate: int = 115200, timeout: float = 1.0
     ):
         """
-        Initialize the HALSPA client.
+        Initialize the REPL client.
 
         Args:
             port: Serial port to connect to. If None, will attempt auto-detection.
@@ -67,7 +68,13 @@ class HalspaClient:
             self.serial.close()
         self._is_connected = False
 
-    def execute(self, code: str, timeout: float | None = None) -> tuple[str, str]:
+    def reset(self) -> None:
+        """Reset the REPL to a clean state."""
+        if not self._is_connected:
+            raise ConnectionError("Not connected to HALSPA device")
+        self._reset_repl()
+
+    def execute(self, code: str, timeout: float | None = None) -> str:
         """
         Execute code using raw paste mode for better performance with larger code blocks.
 
@@ -76,7 +83,7 @@ class HalspaClient:
             timeout: Optional timeout override for this operation.
 
         Returns:
-            Tuple of (output, error_traceback).
+            The output of the executed code.
         """
         if not self._is_connected:
             self.connect()
@@ -84,7 +91,9 @@ class HalspaClient:
         assert self.serial is not None, "Serial connection is not established"
 
         # Prepare the code (ensure it ends with newline)
+        logger.debug(f"Executing code: {code.strip()}")
         code = code.rstrip() + "\r\n"
+
         code_bytes = code.encode("utf-8")
 
         # Enter raw REPL mode first
@@ -187,7 +196,11 @@ class HalspaClient:
             output = output_bytes.decode("utf-8")
             error = error_bytes.decode("utf-8") if is_error else ""
 
-            return (output, error)
+            if error:
+                # If there's an error, raise an exception
+                raise RuntimeError(f"Error executing code: {error}")
+
+            return output
 
         finally:
             # Restore timeout if changed
@@ -219,11 +232,7 @@ class HalspaClient:
 
         # Build and execute the code
         code = f"print(repr({func_name}({all_args})))"
-        output, error = self.execute(code)
-
-        # If there was an error, raise an exception
-        if error:
-            raise RuntimeError(f"Error calling {func_name}: {error}")
+        output = self.execute(code)
 
         # Evaluate the result
         try:
@@ -264,48 +273,21 @@ class HalspaClient:
 
         return info
 
-    def enable_power(self, rail: str, state: bool = True) -> None:
+    def set_pin_mode(self, pin: int, mode: str) -> None:
         """
-        Enable or disable a power rail.
+        Set the mode of a GPIO pin.
 
         Args:
-            rail: The power rail to control ("5v", "3v3", "12v_1", or "12v_2")
-            state: True to enable, False to disable
+            pin: GPIO pin number (0-39)
+            mode: Pin mode ("input", "output", "pullup", "pulldown")
         """
-        rail_map = {
-            "5v": "enable_5v",
-            "3v3": "enable_3v3",
-            "12v_1": "enable_12v_1",
-            "12v_2": "enable_12v_2",
-        }
+        if not 0 <= pin <= 39:
+            raise ValueError(f"Pin must be 0-39, got {pin}")
 
-        if rail not in rail_map:
-            raise ValueError(f"Unknown power rail: {rail}")
+        if mode not in ["input", "output", "pullup", "pulldown"]:
+            raise ValueError(f"Invalid pin mode: {mode}")
 
-        method = rail_map[rail]
-        self.execute(f"from sauce.sauce import powcon; powcon.{method}({state})")
-
-    def measure_voltage(self, channel: int) -> float:
-        """
-        Measure voltage on an ADC channel.
-
-        Args:
-            channel: ADC channel number (0-3)
-
-        Returns:
-            Measured voltage in volts.
-        """
-        if not 0 <= channel <= 3:
-            raise ValueError(f"Channel must be 0-3, got {channel}")
-
-        output, error = self.execute(
-            f"from sauce.sauce import adc1; print(adc1.raw_to_v(adc1.read(6, {channel})))"
-        )
-
-        if error:
-            raise RuntimeError(f"Error measuring voltage: {error}")
-
-        return float(output.strip())
+        self.execute(f"from machine import Pin; Pin({pin}).mode('{mode}')")
 
     # Private helper methods
 
@@ -322,7 +304,7 @@ class HalspaClient:
         for port in serial.tools.list_ports.comports():
             # Check for Pico's USB VID:PID
             if (
-                port.vid == 0x2E8A and port.pid == 0x000A
+                port.vid == 0x2E8A and port.pid in [0x000A, 0x0005]
             ) or "Pico" in port.description:
                 return port.device
 
@@ -341,6 +323,12 @@ class HalspaClient:
 
         # Wait for the prompt
         self._read_until(b">>>")
+
+        # Send Ctrl+D to reset the REPL
+        self.serial.write(b"\x04")
+        time.sleep(0.1)
+        # Clear the input buffer
+        self.serial.reset_input_buffer()
 
     def _enter_raw_repl(self) -> None:
         """
