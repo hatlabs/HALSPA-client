@@ -1,6 +1,6 @@
 from textwrap import dedent
 
-import halspa_client.repl
+import halspa.repl
 
 
 class PowerControl:

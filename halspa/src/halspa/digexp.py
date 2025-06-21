@@ -1,6 +1,6 @@
 from textwrap import dedent
 
-from halspa_client.repl import REPL
+from halspa.repl import REPL
 
 
 class TCA9535Pin:

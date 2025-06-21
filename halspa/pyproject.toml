@@ -1,5 +1,5 @@
 [project]
-name = "halspa_client"
+name = "halspa"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -19,5 +19,5 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "ipykernel>=6.29.5",
-    "pytest>=8.3.5",
+    "pytest>=8.4.1",
 ]
