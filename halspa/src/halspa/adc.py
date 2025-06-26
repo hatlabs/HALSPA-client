@@ -1,6 +1,7 @@
 from textwrap import dedent
 
 import halspa.repl
+from halspa.analog_mux import AnalogMux
 
 
 class ADS1115:
@@ -97,7 +98,7 @@ class ADCChannel:
         Initialize the ADC class.
         """
         self.ads1115 = ads1115
-        self.name = f"ads1115_{ads1115.ads_num}_ch{channel}"
+        self.name = f"ads{ads1115.ads_num}_ch{channel}"
         self.channel = channel
         self.scale = scale
         self.rb = rb
@@ -127,6 +128,61 @@ class ADCChannel:
         Read the voltage from the specified channel.
         """
         output = self.ads1115.repl.execute(f"print({self.name}.read_voltage())")
+
+        try:
+            return float(output)
+        except ValueError:
+            raise RuntimeError(f"Invalid ADC voltage value received: {output}")
+        except TypeError:
+            raise RuntimeError(
+                f"Invalid ADC voltage value type received: {type(output)}"
+            )
+
+
+class AnalogMuxADCChannel:
+    """
+    Convenience class for using an analog multiplexer with the ADS1115 ADC.
+    """
+
+    def __init__(
+        self,
+        anamux: AnalogMux,
+        mux_num: int,
+        mux_ch: int,
+        adc_channel: ADCChannel,
+    ) -> None:
+        self.anamux = anamux
+        self.mux_num = mux_num
+        self.mux_ch = mux_ch
+        self.adc_channel = adc_channel
+
+        self.name = f"{self.adc_channel.name}_mux{self.mux_num}_ch{self.mux_ch}"
+
+        cmd = dedent(f"""
+                    from sauce.adc import AnalogMuxADCChannel
+                    {self.name} = AnalogMuxADCChannel({self.anamux.name}.get_pin_selector({self.mux_num}, {self.mux_ch}), {self.adc_channel.name})
+                    """)
+
+        self.anamux.repl.execute(cmd)
+
+    def read_raw(self) -> int:
+        """
+        Read the raw ADC value from the analog multiplexer channel.
+        """
+        output = self.anamux.repl.execute(f"print({self.name}.read_raw())")
+
+        try:
+            return int(output)
+        except ValueError:
+            raise RuntimeError(f"Invalid ADC raw value received: {output}")
+        except TypeError:
+            raise RuntimeError(f"Invalid ADC raw value type received: {type(output)}")
+
+    def read_voltage(self) -> float:
+        """
+        Read the voltage from the analog multiplexer channel.
+        """
+        output = self.anamux.repl.execute(f"print({self.name}.read_voltage())")
 
         try:
             return float(output)
