@@ -28,8 +28,27 @@ readonly PROJECT_ROOT=$(pwd)
 # Store the absolute path to this script (useful for recursion).
 readonly SCRIPT="$PROJECT_ROOT/$(basename "$0")"
 
-# Project source directories.
-SRC="app shopship"
+################################################################################
+# Project-specific commands follow.
+
+function install {
+  if [ -d /Volumes/RPI-RP2 ]; then
+    echo "Copying Micropython"
+    cp RPI_PICO-20241129-v1.24.1.uf2 /Volumes/RPI-RP2
+    sleep 5
+    mpremote fs ls  # Test that the Pico is connected
+  fi
+
+  mpremote mip install https://raw.githubusercontent.com/robert-hh/ads1x15/refs/heads/master/ads1x15.py
+  mpremote mip install github:josverl/micropython-stubs/mip/typing.mpy
+  mpremote mip install contextlib
+
+  upload
+}
+
+function upload {
+  mpremote cp -r main.py sauce :
+}
 
 ################################################################################
 # Meta-commands and utilities follow.
@@ -98,28 +117,6 @@ function _export_unset {
 function _test_export_unset {
   _export_unset .env
   env | sort
-}
-
-################################################################################
-# Project-specific commands follow.
-
-function install {
-  if [ -d /Volumes/RPI-RP2 ]; then
-    echo "Copying Micropython"
-    cp RPI_PICO-20241129-v1.24.1.uf2 /Volumes/RPI-RP2
-    sleep 5
-    mpremote fs ls  # Test that the Pico is connected
-  fi
-
-  mpremote mip install https://raw.githubusercontent.com/robert-hh/ads1x15/refs/heads/master/ads1x15.py
-  mpremote mip install github:josverl/micropython-stubs/mip/typing.mpy
-  mpremote mip install contextlib
-
-  upload
-}
-
-function upload {
-  mpremote cp -r main.py sauce :
 }
 
 
