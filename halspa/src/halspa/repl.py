@@ -94,7 +94,7 @@ class REPL:
 
         # Prepare the code (ensure it ends with newline)
         logger.debug(f"Executing code: {code.strip()}")
-        code = code.rstrip() + "\r\n"
+        code = code.rstrip() + "\n"
 
         code_bytes = code.encode("utf-8")
 
@@ -274,22 +274,6 @@ class REPL:
         )
 
         return info
-
-    def set_pin_mode(self, pin: int, mode: str) -> None:
-        """
-        Set the mode of a GPIO pin.
-
-        Args:
-            pin: GPIO pin number (0-39)
-            mode: Pin mode ("input", "output", "pullup", "pulldown")
-        """
-        if not 0 <= pin <= 39:
-            raise ValueError(f"Pin must be 0-39, got {pin}")
-
-        if mode not in ["input", "output", "pullup", "pulldown"]:
-            raise ValueError(f"Invalid pin mode: {mode}")
-
-        self.execute(f"from machine import Pin; Pin({pin}).mode('{mode}')")
 
     # Private helper methods
 
