@@ -51,6 +51,8 @@ class REPL:
             if not self.port:
                 raise ConnectionError("Could not auto-detect HALSPA device")
 
+        logger.debug(f"Connecting to HALSPA device on port {self.port}")
+
         try:
             self.serial = serial.Serial(self.port, self.baudrate, timeout=self.timeout)
 
@@ -303,9 +305,9 @@ class REPL:
         # Look for Raspberry Pi Pico or compatible USB devices
         for port in serial.tools.list_ports.comports():
             # Check for Pico's USB VID:PID
-            if (
-                port.vid == 0x2E8A and port.pid in [0x000A, 0x0005]
-            ) or "Pico" in port.description:
+            if (port.vid == 0x2E8A and port.pid in [0x000A, 0x0005]) or (
+                "Pico" in port.description and "Debugprobe" not in port.description
+            ):
                 return port.device
 
         return None

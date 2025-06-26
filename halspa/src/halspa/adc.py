@@ -8,7 +8,22 @@ class ADS1115:
     Class to represent the ADS1115 ADC.
     """
 
-    def __init__(self, repl: halspa_client.repl.REPL, ads_num: int, gain: int):
+    def __init__(self, repl: halspa.repl.REPL, ads_num: int, gain: int):
+        """Initialize the ADS1115 class.
+
+        Args:
+            repl: The REPL instance to execute commands.
+            ads_num: The ADS1115 number (1 or 2).
+            gain: The gain setting for the ADC.
+
+        Gain values:
+            0 : 6.144V # 2/3x
+            1 : 4.096V # 1x
+            2 : 2.048V # 2x
+            3 : 1.024V # 4x
+            4 : 0.512V # 8x
+            5 : 0.256V # 16x
+        """
         self.repl = repl
         self.ads_num = ads_num
         self.gain = gain
@@ -111,7 +126,7 @@ class ADCChannel:
         """
         Read the voltage from the specified channel.
         """
-        output = self.ads1115.repl.execute(f"print({self.name}.read_v())")
+        output = self.ads1115.repl.execute(f"print({self.name}.read_voltage())")
 
         try:
             return float(output)

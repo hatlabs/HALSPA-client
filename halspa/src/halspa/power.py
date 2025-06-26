@@ -8,7 +8,7 @@ class PowerControl:
     Class to control the power state of a device.
     """
 
-    def __init__(self, repl: halspa_client.repl.REPL) -> None:
+    def __init__(self, repl: halspa.repl.REPL) -> None:
         self.repl = repl
         self.repl.execute(
             dedent("""
@@ -17,6 +17,12 @@ class PowerControl:
                     powcon = PowerControl(i2c)
                     """)
         )
+
+    def disable_all(self) -> None:
+        """
+        Disable all power rails and current limits.
+        """
+        self.repl.execute("powcon.disable_all()")
 
     def enable_power(self, rail: str, state: bool = True) -> None:
         """
