@@ -4,6 +4,18 @@ from typing import Any, Dict, Optional
 import serial
 from loguru import logger
 
+# Protocol constants
+RAW_PASTE_COMMAND = b"\x05A\x01"
+RAW_PASTE_SUPPORTED = b"R\x01"
+RAW_PASTE_NOT_SUPPORTED = b"R\x00"
+CHUNK_SIZE = 32  # Bytes to send per chunk in regular raw mode
+MAX_RESPONSE_SIZE = 100000  # 100KB safety limit
+EXECUTION_TIMEOUT_MULTIPLIER = 10
+
+# Raspberry Pi Pico USB identifiers
+PICO_VID = 0x2E8A
+PICO_PIDS = [0x000A, 0x0005]
+
 
 class REPL:
     """
@@ -66,8 +78,15 @@ class REPL:
 
     def disconnect(self) -> None:
         """Close the connection to the HALSPA device."""
-        if self.serial and self.serial.is_open:
-            self.serial.close()
+        if self.serial:
+            try:
+                if self.serial.is_open:
+                    self.serial.close()
+            except Exception:
+                # Ignore errors during disconnection
+                pass
+            finally:
+                self.serial = None
         self._is_connected = False
 
     def reset(self) -> None:
@@ -86,7 +105,16 @@ class REPL:
 
         Returns:
             The output of the executed code.
+
+        Raises:
+            ValueError: If code is empty or None.
+            ConnectionError: If not connected to device.
+            RuntimeError: If code execution fails.
+            TimeoutError: If execution times out.
         """
+        if not code or not code.strip():
+            raise ValueError("Code cannot be empty")
+
         if not self._is_connected:
             self.connect()
 
@@ -199,7 +227,7 @@ class REPL:
         # Look for Raspberry Pi Pico or compatible USB devices
         for port in serial.tools.list_ports.comports():
             # Check for Pico's USB VID:PID
-            if (port.vid == 0x2E8A and port.pid in [0x000A, 0x0005]) or (
+            if (port.vid == PICO_VID and port.pid in PICO_PIDS) or (
                 "Pico" in port.description and "Debugprobe" not in port.description
             ):
                 return port.device
@@ -301,7 +329,7 @@ class REPL:
                 result += char
 
                 # Safety check to prevent infinite loops with very long responses
-                if len(result) > 100000:  # 100KB limit
+                if len(result) > MAX_RESPONSE_SIZE:
                     raise RuntimeError(f"Response too long while waiting for {term!r}")
 
             return result
@@ -319,19 +347,19 @@ class REPL:
         assert self.serial is not None, "Serial connection is not established"
 
         # Send raw paste mode command sequence
-        self.serial.write(b"\x05A\x01")
+        self.serial.write(RAW_PASTE_COMMAND)
 
         # Read the response to determine if raw paste mode is supported
         response = self.serial.read(2)
 
-        if response == b"R\x01":
+        if response == RAW_PASTE_SUPPORTED:
             # Device supports raw paste and has entered this mode
             # Read the window size increment (16-bit little endian)
             window_bytes = self.serial.read(2)
             self.paste_window_size = window_bytes[0] | (window_bytes[1] << 8)
             self.paste_remaining_window = self.paste_window_size
             return
-        elif response == b"R\x00":
+        elif response == RAW_PASTE_NOT_SUPPORTED:
             # Device understands the command but doesn't support raw paste
             raise RuntimeError(
                 "Device understands raw paste command but doesn't support it"
@@ -400,8 +428,8 @@ class REPL:
             raise RuntimeError("Could not enter raw repl")
 
         # Write command in 32-byte chunks (like pyboard.py)
-        for i in range(0, len(code_bytes), 32):
-            chunk = code_bytes[i : min(i + 32, len(code_bytes))]
+        for i in range(0, len(code_bytes), CHUNK_SIZE):
+            chunk = code_bytes[i : min(i + CHUNK_SIZE, len(code_bytes))]
             self.serial.write(chunk)
             time.sleep(0.01)  # Small delay between chunks
 
@@ -420,7 +448,9 @@ class REPL:
         assert self.serial is not None, "Serial connection is not established"
 
         # Read normal output (until first EOT)
-        output_data = self._read_until(b"\x04", timeout=max(30.0, self.timeout * 10))
+        output_data = self._read_until(
+            b"\x04", timeout=max(30.0, self.timeout * EXECUTION_TIMEOUT_MULTIPLIER)
+        )
         if not output_data.endswith(b"\x04"):
             raise TimeoutError("Timeout waiting for output EOF")
         output_data = output_data[:-1]  # Remove the EOT
