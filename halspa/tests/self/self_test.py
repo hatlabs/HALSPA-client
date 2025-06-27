@@ -1,11 +1,13 @@
+from textwrap import dedent
+
 import pytest
 
-from halspa_client.adc import ADS1115, ADCChannel
-from halspa_client.analog_mux import AnalogMux
-from halspa_client.digexp import TCA9535
-from halspa_client.pin import Pin
-from halspa_client.power import PowerControl
-from halspa_client.repl import REPL
+from halspa.adc import ADS1115, ADCChannel
+from halspa.analog_mux import AnalogMux
+from halspa.digexp import TCA9535
+from halspa.pin import Pin
+from halspa.power import PowerControl
+from halspa.repl import REPL
 
 
 @pytest.fixture(scope="module")
@@ -115,3 +117,50 @@ def test_anamux(repl, anamux, digexp2, ads1115_1):
     de2_pin2.write(1)
     v = adc1_0.read_voltage()
     assert v > 3.1, f"Anamux 1 pin 7 voltage too low: {v}V"
+
+
+def test_repl(repl):
+    output = repl.execute("print('Hello, HALSPA!')")
+    assert output.strip() == "Hello, HALSPA!", (
+        f"Unexpected REPL output: {output.strip()}"
+    )
+
+
+def test_repl_long_response(repl):
+    output = repl.execute("print(('Hello, HALSPA! ' * 1000).strip())")
+    assert output.strip() == ("Hello, HALSPA! " * 1000).strip(), (
+        f"Unexpected REPL output: {output.strip()}"
+    )
+
+
+def test_repl_long_command(repl):
+    command = dedent("""
+    print('00000000000000000')
+    print('11111111111111111')
+    print('22222222222222222')
+    print('33333333333333333')
+    print('44444444444444444')
+    print('55555555555555555')
+    print('66666666666666666')
+    print('77777777777777777')
+    print('88888888888888888')
+    print('99999999999999999')
+    """).strip()
+
+    output = repl.execute(command)
+    expected_output = (
+        "00000000000000000\n"
+        "11111111111111111\n"
+        "22222222222222222\n"
+        "33333333333333333\n"
+        "44444444444444444\n"
+        "55555555555555555\n"
+        "66666666666666666\n"
+        "77777777777777777\n"
+        "88888888888888888\n"
+        "99999999999999999"
+    )
+
+    assert output.strip() == expected_output, (
+        f"Unexpected REPL output: {output.strip()}"
+    )

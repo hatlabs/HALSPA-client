@@ -93,9 +93,7 @@ class REPL:
         assert self.serial is not None, "Serial connection is not established"
 
         # Prepare the code (ensure it ends with newline)
-        logger.debug(f"Executing code: {code.strip()}")
         code = code.rstrip() + "\n"
-
         code_bytes = code.encode("utf-8")
 
         # Enter raw REPL mode first
@@ -108,101 +106,13 @@ class REPL:
             self.serial.timeout = timeout
 
         try:
-            # Try to enter raw paste mode
-            self._enter_raw_paste_mode()
-            # Raises a RuntimeError if raw paste mode is not supported
-
-            # Send the code in chunks using the window size provided by the device
-            pos = 0
-            while pos < len(code_bytes):
-                # Calculate how much we can send
-                chunk_size = min(len(code_bytes) - pos, self.paste_remaining_window)
-                if chunk_size == 0:
-                    # Wait for flow control byte
-                    char = self.serial.read(1)
-                    if char == b"\x01":
-                        # Window size has been incremented
-                        self.paste_remaining_window = self.paste_window_size
-                        continue
-                    elif char == b"\x04":
-                        # Device wants to end transmission
-                        self.serial.write(b"\x04")
-                        break
-                    elif not char:
-                        raise TimeoutError("Timeout during raw paste transmission")
-                    else:
-                        raise RuntimeError(
-                            f"Unexpected character during raw paste: {char}"
-                        )
-
-                # Send a chunk of code
-                chunk = code_bytes[pos : pos + chunk_size]
-                self.serial.write(chunk)
-                pos += chunk_size
-                self.paste_remaining_window -= chunk_size
-
-                # Check if there's a flow control byte waiting
-                if self.serial.in_waiting:
-                    char = self.serial.read(1)
-                    if char == b"\x01":
-                        # Window size has been incremented
-                        self.paste_remaining_window = self.paste_window_size
-                    elif char == b"\x04":
-                        # Device wants to end transmission
-                        self.serial.write(b"\x04")
-                        break
-                    else:
-                        raise RuntimeError(
-                            f"Unexpected character during raw paste: {char}"
-                        )
-
-            # End the transmission
-            self.serial.write(b"\x04")
-
-            # Read a single byte. It should be the EOT (end of transmission) character
-            char = self.serial.read(1)
-            if char != b"\x04":
-                raise RuntimeError(f"Unexpected character after raw paste: {char}")
-
-            # Read response, handling output and errors as in execute()
-            output_bytes = bytearray()
-            error_bytes = bytearray()
-
-            # Read until first EOT (end of output)
-            while True:
-                char = self.serial.read(1)
-                if not char:
-                    raise TimeoutError("Timeout waiting for output")
-                if char == b"\x04":  # EOT marker
-                    break
-                output_bytes.extend(char)
-
-            # Check if there's an error (another EOT will follow)
-            is_error = False
-            while True:
-                char = self.serial.read(1)
-                if not char:
-                    # If we timeout here, it means there was no error
-                    break
-
-                if char == b"\x04":  # Second EOT marker (end of error)
-                    break
-
-                is_error = True
-                error_bytes.extend(char)
-
-            # Wait for the prompt to return
-            self._read_until(b">")
-
-            # Convert to strings
-            output = output_bytes.decode("utf-8")
-            error = error_bytes.decode("utf-8") if is_error else ""
-
-            if error:
-                # If there's an error, raise an exception
-                raise RuntimeError(f"Error executing code: {error}")
-
-            return output
+            # Try to enter raw paste mode first
+            try:
+                self._enter_raw_paste_mode()
+                return self._execute_raw_paste(code_bytes)
+            except RuntimeError:
+                # Fall back to regular raw mode
+                return self._execute_raw_mode(code_bytes)
 
         finally:
             # Restore timeout if changed
@@ -352,10 +262,11 @@ class REPL:
 
         # Try to read until we see the normal REPL prompt
         try:
-            self._read_until(b">>>", timeout=2.0)
+            self._read_until(b">>>", timeout=5.0)
         except TimeoutError:
-            # If we can't get back to normal REPL, try to reset
-            self._reset_repl()
+            # If we can't get back to normal REPL, try a more aggressive reset
+            logger.warning("Could not exit raw REPL normally, performing hard reset")
+            self._hard_reset_repl()
 
     def _read_until(self, term: bytes, timeout: float | None = None) -> bytes:
         """
@@ -376,11 +287,23 @@ class REPL:
 
         try:
             result = b""
+            start_time = time.time()
             while not result.endswith(term):
                 char = self.serial.read(1)
                 if not char:
-                    raise TimeoutError("Timeout waiting for response")
+                    elapsed = time.time() - start_time
+                    current_timeout = (
+                        timeout if timeout is not None else self.serial.timeout
+                    )
+                    raise TimeoutError(
+                        f"Timeout ({elapsed:.1f}s, limit: {current_timeout}s) waiting for {term!r}, got {result!r}"
+                    )
                 result += char
+
+                # Safety check to prevent infinite loops with very long responses
+                if len(result) > 100000:  # 100KB limit
+                    raise RuntimeError(f"Response too long while waiting for {term!r}")
+
             return result
         finally:
             if old_timeout is not None:
@@ -394,6 +317,7 @@ class REPL:
             None
         """
         assert self.serial is not None, "Serial connection is not established"
+
         # Send raw paste mode command sequence
         self.serial.write(b"\x05A\x01")
 
@@ -416,4 +340,149 @@ class REPL:
             # Device doesn't understand raw paste command
             # Read and discard the rest of the response
             self._read_until(b">")
-            raise RuntimeError("Device doesn't understand raw paste command")
+            raise RuntimeError(
+                f"Device doesn't understand raw paste command, got: {response!r}"
+            )
+
+    def _execute_raw_paste(self, code_bytes: bytes) -> str:
+        """Execute code using raw paste mode."""
+        assert self.serial is not None, "Serial connection is not established"
+
+        # Send the code in chunks using the window size provided by the device
+        pos = 0
+        while pos < len(code_bytes):
+            # Check for flow control if window is empty OR if data is waiting
+            if self.paste_remaining_window == 0 or self.serial.in_waiting:
+                char = self.serial.read(1)
+                if char == b"\x01":
+                    # Window size has been incremented
+                    self.paste_remaining_window = self.paste_window_size
+                    continue
+                elif char == b"\x04":
+                    # Device wants to end transmission
+                    self.serial.write(b"\x04")
+                    break
+                elif not char:
+                    raise TimeoutError("Timeout during raw paste transmission")
+                else:
+                    raise RuntimeError(f"Unexpected character during raw paste: {char}")
+
+            # Calculate how much we can send (must be > 0 at this point)
+            chunk_size = min(len(code_bytes) - pos, self.paste_remaining_window)
+
+            # Send a chunk of code
+            chunk = code_bytes[pos : pos + chunk_size]
+            self.serial.write(chunk)
+            pos += chunk_size
+            self.paste_remaining_window -= chunk_size
+
+        # End the transmission
+        self.serial.write(b"\x04")
+
+        # Read confirmation EOT - device has received all data and is compiling
+        char = self.serial.read(1)
+        if char != b"\x04":
+            if not char:
+                raise TimeoutError("Timeout waiting for compilation confirmation")
+            raise RuntimeError(f"Unexpected character after raw paste: {char}")
+
+        # Read response - according to the MicroPython docs and pyboard.py reference,
+        # there are two sections: output and error, both terminated by EOT
+        return self._read_execution_result()
+
+    def _execute_raw_mode(self, code_bytes: bytes) -> str:
+        """Execute code using regular raw mode (like pyboard.py reference implementation)."""
+        assert self.serial is not None, "Serial connection is not established"
+
+        # Check we have a prompt
+        data = self._read_until(b">")
+        if not data.endswith(b">"):
+            raise RuntimeError("Could not enter raw repl")
+
+        # Write command in 32-byte chunks (like pyboard.py)
+        for i in range(0, len(code_bytes), 32):
+            chunk = code_bytes[i : min(i + 32, len(code_bytes))]
+            self.serial.write(chunk)
+            time.sleep(0.01)  # Small delay between chunks
+
+        self.serial.write(b"\x04")  # End of input
+
+        # Check if we could exec command
+        data = self.serial.read(2)
+        if data != b"OK":
+            raise RuntimeError(f"Could not exec command, got: {data!r}")
+
+        # Read execution result
+        return self._read_execution_result()
+
+    def _read_execution_result(self) -> str:
+        """Read the result of code execution (works for both raw paste and raw mode)."""
+        assert self.serial is not None, "Serial connection is not established"
+
+        # Read normal output (until first EOT)
+        output_data = self._read_until(b"\x04", timeout=max(30.0, self.timeout * 10))
+        if not output_data.endswith(b"\x04"):
+            raise TimeoutError("Timeout waiting for output EOF")
+        output_data = output_data[:-1]  # Remove the EOT
+
+        # Read error output (until second EOT)
+        error_data = self._read_until(b"\x04", timeout=5.0)
+        if not error_data.endswith(b"\x04"):
+            raise TimeoutError("Timeout waiting for error EOF")
+        error_data = error_data[:-1]  # Remove the EOT
+
+        # Convert to strings and normalize line endings
+        output = output_data.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
+        error = (
+            error_data.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
+            if error_data
+            else ""
+        )
+
+        if error:
+            raise RuntimeError(f"Error executing code: {error}")
+
+        return output
+
+    def _hard_reset_repl(self) -> None:
+        """Perform a hard reset when normal methods fail."""
+        assert self.serial is not None, "Serial connection is not established"
+
+        # Clear all buffers
+        self.serial.reset_input_buffer()
+        self.serial.reset_output_buffer()
+
+        # Try multiple interrupt sequences
+        for _ in range(5):
+            self.serial.write(b"\x03")  # Ctrl+C
+            time.sleep(0.1)
+
+        # Try to exit raw REPL if we're still in it
+        self.serial.write(b"\x02")  # Ctrl+B
+        time.sleep(0.2)
+
+        # Send Ctrl+D for soft reset
+        self.serial.write(b"\x04")
+        time.sleep(0.5)
+
+        # Clear buffers again
+        self.serial.reset_input_buffer()
+        self.serial.reset_output_buffer()
+
+        # Try to get to a clean state - read whatever is there with a short timeout
+        try:
+            # Set a very short timeout to quickly consume any remaining output
+            old_timeout = self.serial.timeout
+            self.serial.timeout = 0.1
+
+            # Read and discard whatever is in the buffer
+            while True:
+                data = self.serial.read(100)
+                if not data:
+                    break
+
+        except Exception:
+            pass  # Ignore any errors during cleanup
+        finally:
+            # Restore original timeout
+            self.serial.timeout = old_timeout

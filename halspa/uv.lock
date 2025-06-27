@@ -110,6 +110,7 @@ source = { editable = "." }
 dependencies = [
     { name = "loguru" },
     { name = "pyserial" },
+    { name = "pytest" },
     { name = "serial" },
 ]
 
@@ -123,6 +124,7 @@ dev = [
 requires-dist = [
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "pyserial", specifier = ">=3.5" },
+    { name = "pytest", specifier = ">=8.4.1" },
     { name = "serial", specifier = ">=0.0.97" },
 ]
 
