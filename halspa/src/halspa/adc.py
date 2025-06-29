@@ -139,6 +139,61 @@ class ADCChannel:
             )
 
 
+class ADCDiff:
+    """
+    ADC class for differential measurements using the ADS1115.
+    """
+
+    def __init__(
+        self,
+        ads1115: ADS1115,
+        channel1: int,
+        channel2: int,
+        scale: float = 1.0,
+        rb: float | None = None,
+    ) -> None:
+        self.ads1115 = ads1115
+        self.name = f"ads{ads1115.ads_num}_diff_{channel1}_{channel2}"
+        self.channel1 = channel1
+        self.channel2 = channel2
+        self.scale = scale
+        self.rb = rb
+
+        self.ads1115.repl.execute(
+            dedent(f"""
+                    from sauce.adc import ADCDiff
+
+                    {self.name} = ADCDiff({ads1115.name}, {channel1}, {channel2}, {scale}, {rb})
+                    """)
+        )
+
+    def read_raw(self) -> int:
+        """Read the raw differential ADC value."""
+        output = self.ads1115.repl.execute(f"print({self.name}.read_raw())")
+
+        try:
+            return int(output)
+        except ValueError:
+            raise RuntimeError(f"Invalid ADC raw value received: {output}")
+        except TypeError:
+            raise RuntimeError(f"Invalid ADC raw value type received: {type(output)}")
+
+    def read_voltage(self) -> float:
+        """
+        Read the voltage from the specified channel.
+        """
+        output = self.ads1115.repl.execute(f"print({self.name}.read_voltage())")
+
+        try:
+            return float(output)
+        except ValueError:
+            raise RuntimeError(f"Invalid ADC voltage value received: {output}")
+        except TypeError:
+            raise RuntimeError(
+                f"Invalid ADC voltage value type received: {type(output)}"
+            )
+
+
 class AnalogMuxADCChannel:
     """
     Convenience class for using an analog multiplexer with the ADS1115 ADC.
