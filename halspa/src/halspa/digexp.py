@@ -24,17 +24,17 @@ class TCA9535Pin:
     def __repr__(self):
         return f"TCA9535Pin(name={self.name}, pin_num={self.pin_num})"
 
-    def read(self) -> bool:
+    def get(self) -> bool:
         """
         Read the value from the pin.
         """
-        return self.tca9535.repl.call_function(f"{self.name}.read") == 1
+        return self.tca9535.repl.call_function(f"{self.name}.get") == 1
 
-    def write(self, value: bool) -> None:
+    def set(self, value: bool) -> None:
         """
         Write a value to the pin.
         """
-        self.tca9535.repl.call_function(f"{self.name}.write", value)
+        self.tca9535.repl.call_function(f"{self.name}.set", value)
 
     def toggle(self) -> None:
         """
@@ -85,29 +85,29 @@ class TCA9535:
     def __repr__(self):
         return f"TCA9535(name={self.name}, configuration={self.configuration}, output={self.output})"
 
-    def read(self) -> int:
+    def get(self) -> int:
         """
         Read the value from the digital expander.
         """
-        return self.repl.call_function(f"{self.name}.read")
+        return self.repl.call_function(f"{self.name}.get")
 
-    def write(self, value: int) -> None:
+    def set(self, value: int) -> None:
         """
         Write a value to the digital expander.
         """
-        self.repl.call_function(f"{self.name}.write", value)
+        self.repl.call_function(f"{self.name}.set", value)
 
-    def read_bit(self, pin: int) -> bool:
+    def get_bit(self, pin: int) -> bool:
         """
         Read a specific bit from the digital expander.
         """
-        return self.repl.call_function(f"{self.name}.read_bit", pin) == 1
+        return self.repl.call_function(f"{self.name}.get_bit", pin) == 1
 
-    def write_bit(self, pin: int, value: bool, defer=False) -> None:
+    def set_bit(self, pin: int, value: bool, defer=False) -> None:
         """
         Write a specific bit to the digital expander.
         """
-        self.repl.call_function(f"{self.name}.write_bit", pin, value, defer)
+        self.repl.call_function(f"{self.name}.set_bit", pin, value, defer)
 
     def commit(self) -> None:
         """
@@ -115,17 +115,17 @@ class TCA9535:
         """
         self.repl.call_function(f"{self.name}.commit")
 
-    def read_configuration(self) -> int:
+    def get_configuration(self) -> int:
         """
         Read the configuration register of the digital expander.
         """
-        return self.repl.call_function(f"{self.name}.read_configuration")
+        return self.repl.call_function(f"{self.name}.get_configuration")
 
-    def write_configuration(self, configuration: int) -> None:
+    def set_configuration(self, configuration: int) -> None:
         """
         Write a new configuration to the digital expander.
         """
-        self.repl.call_function(f"{self.name}.write_configuration", configuration)
+        self.repl.call_function(f"{self.name}.set_configuration", configuration)
         self.configuration = configuration
 
     def get_pin(self, pin_num: int) -> TCA9535Pin:

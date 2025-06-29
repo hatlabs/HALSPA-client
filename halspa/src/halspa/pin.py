@@ -49,7 +49,7 @@ class Pin:
     def __repr__(self):
         return f"Pin(name={self.name}, type={self.type}, pull={self.pull})"
 
-    def read(self) -> bool:
+    def get(self) -> bool:
         """
         Read the value from the pin.
         """
@@ -62,7 +62,7 @@ class Pin:
         """
         self.repl.call_function(f"{self.name}.value", value)
 
-    def init(self, pin_type: str, pull: str = "none") -> None:
+    def configure(self, pin_type: str, pull: str = "none") -> None:
         """
         Reinitialize the pin with a new type and pull configuration.
         """

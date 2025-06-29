@@ -18,17 +18,17 @@ class TCA9535Pin:
         self.tca9535 = tca9535
         self.pin = pin
 
-    def read(self):
-        """Read the state of the pin."""
-        return self.tca9535.read_bit(self.pin)
+    def get(self):
+        """Get the state of the pin."""
+        return self.tca9535.get_bit(self.pin)
 
-    def write(self, value):
+    def set(self, value):
         """Set the state of the pin."""
-        self.tca9535.write_bit(self.pin, value)
+        self.tca9535.set_bit(self.pin, value)
 
     def toggle(self):
         """Toggle the state of the pin."""
-        self.tca9535.write_bit(self.pin, not self.read())
+        self.tca9535.set_bit(self.pin, not self.get())
 
     def configure(self, mode: int):
         """
@@ -41,7 +41,7 @@ class TCA9535Pin:
             self.tca9535.configuration |= 1 << self.pin
         else:
             self.tca9535.configuration &= ~(1 << self.pin)
-        self.tca9535.write_configuration(self.tca9535.configuration)
+        self.tca9535.set_configuration(self.tca9535.configuration)
 
 
 class TCA9535:
@@ -78,11 +78,11 @@ class TCA9535:
         self.configuration = configuration
 
         # Initialize the device
-        self.write(self.output)
-        self.write_polarity_inversion(self.polarity_inversion)
-        self.write_configuration(self.configuration)
+        self.set(self.output)
+        self.set_polarity_inversion(self.polarity_inversion)
+        self.set_configuration(self.configuration)
 
-    def read(self):
+    def get(self):
         """
         Read the input state of both ports.
 
@@ -94,7 +94,7 @@ class TCA9535:
         self.input = input0 | (input1 << 8)
         return self.input
 
-    def write(self, value):
+    def set(self, value):
         """
         Set all outputs bits according to the given 16-bit value.
 
@@ -107,7 +107,7 @@ class TCA9535:
         self.i2c.writeto_mem(self.address, OUTPUT_PORT_1, bytearray([value1]))
         self.output = value
 
-    def write_bit(self, pin, value, defer=False):
+    def set_bit(self, pin, value, defer=False):
         """
         Set the output state of a single pin.
 
@@ -133,7 +133,7 @@ class TCA9535:
                 )
         return value
 
-    def read_bit(self, pin):
+    def get_bit(self, pin):
         """
         Read the state of a single pin.
 
@@ -143,7 +143,7 @@ class TCA9535:
         Returns:
             bool: The state of the pin (True for 1, False for 0).
         """
-        self.read()
+        self.get()
         return bool(self.input & (1 << pin))
 
     def commit(self):
@@ -152,9 +152,9 @@ class TCA9535:
 
         Only applicable if defer=True was used with write_bit().
         """
-        self.write(self.output)
+        self.set(self.output)
 
-    def read_configuration(self):
+    def get_configuration(self):
         """
         Read the configuration register values.
 
@@ -166,7 +166,7 @@ class TCA9535:
         self.configuration = conf0 | (conf1 << 8)
         return self.configuration
 
-    def write_configuration(self, value):
+    def set_configuration(self, value):
         """
         Set the configuration register value.
 
@@ -185,7 +185,7 @@ class TCA9535:
         )
         self.configuration = value
 
-    def read_polarity_inversion(self):
+    def get_polarity_inversion(self):
         """
         Read the polarity inversion register value.
 
@@ -197,7 +197,7 @@ class TCA9535:
         self.polarity_inversion = polarity0 | (polarity1 << 8)
         return self.polarity_inversion
 
-    def write_polarity_inversion(self, value):
+    def set_polarity_inversion(self, value):
         """
         Write a 16-bit value to the polarity inversion register.
 

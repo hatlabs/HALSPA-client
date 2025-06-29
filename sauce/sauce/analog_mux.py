@@ -1,5 +1,3 @@
-from typing import Callable
-
 from machine import I2C
 from micropython import const
 
@@ -35,7 +33,7 @@ class AnalogMux:
         inh_mask = 0xFFFF & ~(1 << inh_pin)
         current = (current & inh_mask) | (inh << inh_pin)
 
-        self.ctrl.write(current)
+        self.ctrl.set(current)
 
     def _reverse_bits(self, value, num_bits):
         reversed_value = 0
@@ -66,7 +64,7 @@ class AnalogMux:
         )
         current = (current & addr_mask) | (addr << addr_pin)
 
-        self.ctrl.write(current)
+        self.ctrl.set(current)
 
     def select(self, mux_num, active_pin):
         self.enable(mux_num, False)

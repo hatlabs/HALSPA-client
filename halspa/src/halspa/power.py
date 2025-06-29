@@ -18,13 +18,13 @@ class PowerControl:
                     """)
         )
 
-    def disable_all(self) -> None:
+    def all_off(self) -> None:
         """
         Disable all power rails and current limits.
         """
-        self.repl.execute("powcon.disable_all()")
+        self.repl.execute("powcon.all_off()")
 
-    def enable_power(self, rail: str, state: bool = True) -> None:
+    def set(self, rail: str, state: bool = True) -> None:
         """
         Enable or disable a power rail.
 
@@ -45,26 +45,26 @@ class PowerControl:
         method = rail_map[rail]
         self.repl.execute(f"powcon.{method}({state})")
 
-    def enable_current_limit(self, num: int, state: bool = True) -> None:
+    def set_curlim(self, num: int, state: bool = True) -> None:
         """
-        Enable or disable the current limit.
+        Enable or disable the current limiter output.
 
         Args:
-            num: Current limit number (1-4)
+            num: Current limiter number (1-4)
             state: True to enable, False to disable
         """
         if not 1 <= num <= 4:
-            raise ValueError(f"Current limit must be 1-4, got {num}")
+            raise ValueError(f"Current limiter must be 1-4, got {num}")
 
         self.repl.execute(f"powcon.enable_current_limit_{num}({state})")
 
-    def read_power_fault(self) -> int:
+    def get_power_fault(self) -> int:
         """
         Read the power fault status.
 
         Returns:
             int: Power fault status bitmask.
         """
-        output = self.repl.execute("print(powcon.read_fault())")
+        output = self.repl.execute("print(powcon.get_fault())")
 
         return int(output.strip())

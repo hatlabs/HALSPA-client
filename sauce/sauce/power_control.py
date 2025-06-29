@@ -131,10 +131,10 @@ class PowerControl:
             None
         """
         try:
-            self.tca9535.write_bit(pin, True, defer)
+            self.tca9535.set_bit(pin, True, defer)
             yield
         finally:
-            self.tca9535.write_bit(pin, False)
+            self.tca9535.set_bit(pin, False)
 
     def _maybe_context(self, pin, state: bool | None = None, defer=False):
         """
@@ -151,9 +151,9 @@ class PowerControl:
         if state is None:
             return self._power_context(pin, defer)  # type: ignore
         else:
-            return self.tca9535.write_bit(pin, state, defer)
+            return self.tca9535.set_bit(pin, state, defer)
 
-    def enable_5v(self, state: bool | None = None, defer=False):
+    def set_5v(self, state: bool | None = None, defer=False):
         """
         Enable or disable the 5V DUT power supply.
 
@@ -166,7 +166,7 @@ class PowerControl:
         """
         return self._maybe_context(EN_5VD_PIN, state, defer)
 
-    def enable_3v3(self, state: bool | None = None, defer=False):
+    def set_3v3(self, state: bool | None = None, defer=False):
         """
         Enable or disable the 3.3V DUT power supply.
 
@@ -179,7 +179,7 @@ class PowerControl:
         """
         return self._maybe_context(EN_3V3D_PIN, state, defer)
 
-    def enable_12v_1(self, state: bool | None = None, defer=False):
+    def set_12v_1(self, state: bool | None = None, defer=False):
         """
         Enable or disable the 12V_1 DUT output.
 
@@ -192,7 +192,7 @@ class PowerControl:
         """
         return self._maybe_context(EN_12V_1_PIN, state, defer)
 
-    def enable_12v_2(self, state: bool | None = None, defer=False):
+    def set_12v_2(self, state: bool | None = None, defer=False):
         """
         Enable or disable the 12V_2 DUT output.
 
@@ -205,9 +205,9 @@ class PowerControl:
         """
         return self._maybe_context(EN_12V_2_PIN, state, defer)
 
-    def enable_current_limit_1(self, state: bool | None = None, defer=False):
+    def set_current_limit_1(self, state: bool | None = None, defer=False):
         """
-        Enable or disable the current limit for channel 1.
+        Enable or disable the current limiter 1 output.
 
         Args:
             state (bool | None): True to enable, False to disable, or None for context manager.
@@ -218,9 +218,9 @@ class PowerControl:
         """
         return self._maybe_context(EN_LIM_1_PIN, state, defer)
 
-    def enable_current_limit_2(self, state: bool | None = None, defer=False):
+    def set_current_limit_2(self, state: bool | None = None, defer=False):
         """
-        Enable or disable the current limit for channel 2.
+        Enable or disable the current limiter 2 output.
 
         Args:
             state (bool | None): True to enable, False to disable, or None for context manager.
@@ -231,9 +231,9 @@ class PowerControl:
         """
         return self._maybe_context(EN_LIM_2_PIN, state, defer)
 
-    def enable_current_limit_3(self, state: bool | None = None, defer=False):
+    def set_current_limit_3(self, state: bool | None = None, defer=False):
         """
-        Enable or disable the current limit for channel 3.
+        Enable or disable the current limiter 3 output.
 
         Args:
             state (bool | None): True to enable, False to disable, or None for context manager.
@@ -244,9 +244,9 @@ class PowerControl:
         """
         return self._maybe_context(EN_LIM_3_PIN, state, defer)
 
-    def enable_current_limit_4(self, state: bool | None = None, defer=False):
+    def set_current_limit_4(self, state: bool | None = None, defer=False):
         """
-        Enable or disable the current limit for channel 4.
+        Enable or disable the current limiter 4 output.
 
         Args:
             state (bool | None): True to enable, False to disable, or None for context manager.
@@ -266,13 +266,13 @@ class PowerControl:
         """
         self.tca9535.commit()
 
-    def disable_all(self):
+    def all_off(self):
         """
         Disable all power rails and current limiters immediately.
         """
-        self.tca9535.write(0)
+        self.tca9535.set(0)
 
-    def read_fault(self):
+    def get_fault(self):
         """
         Read the current fault status bits.
 
@@ -287,9 +287,9 @@ class PowerControl:
             | (1 << FAULT_12V_1_PIN)
             | (1 << FAULT_12V_2_PIN)
         )
-        return self.tca9535.read() & fault_mask
+        return self.tca9535.get() & fault_mask
 
-    def read_power_good(self):
+    def get_power_good(self):
         """
         Read the current power-good status bits.
 
@@ -297,4 +297,4 @@ class PowerControl:
             int: Bitmask of power-good signals.
         """
         pg_mask = (1 << PG_3V3_PIN) | (1 << PG_5VD_PIN)
-        return self.tca9535.read() & pg_mask
+        return self.tca9535.get() & pg_mask
