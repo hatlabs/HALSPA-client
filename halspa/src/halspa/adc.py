@@ -31,7 +31,7 @@ class ADS1115:
         self.name = f"ads{ads_num}"
         self.repl.execute(
             dedent(f"""
-                    from sauce.sauce import i2c, ADC1_ADDR, ADC2_ADDR
+                    from picon.picon import i2c, ADC1_ADDR, ADC2_ADDR
                     from ads1x15 import ADS1115
                     {self.name} = ADS1115(i2c, ADC{ads_num}_ADDR, {gain})
                     """)
@@ -104,7 +104,7 @@ class ADCChannel:
         self.rb = rb
         self.ads1115.repl.execute(
             dedent(f"""
-                    from sauce.adc import ADCChannel
+                    from picon.adc import ADCChannel
 
                     {self.name} = ADCChannel({ads1115.name}, {channel}, {scale}, {rb})
                     """)
@@ -161,7 +161,7 @@ class ADCDiff:
 
         self.ads1115.repl.execute(
             dedent(f"""
-                    from sauce.adc import ADCDiff
+                    from picon.adc import ADCDiff
 
                     {self.name} = ADCDiff({ads1115.name}, {channel1}, {channel2}, {scale}, {rb})
                     """)
@@ -214,7 +214,7 @@ class AnalogMuxADCChannel:
         self.name = f"{self.adc_channel.name}_mux{self.mux_num}_ch{self.mux_ch}"
 
         cmd = dedent(f"""
-                    from sauce.adc import AnalogMuxADCChannel
+                    from picon.adc import AnalogMuxADCChannel
                     {self.name} = AnalogMuxADCChannel({self.anamux.name}.get_pin_selector({self.mux_num}, {self.mux_ch}), {self.adc_channel.name})
                     """)
 

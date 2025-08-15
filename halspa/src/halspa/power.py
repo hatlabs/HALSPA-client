@@ -12,8 +12,8 @@ class PowerControl:
         self.repl = repl
         self.repl.execute(
             dedent("""
-                    from sauce.sauce import i2c
-                    from sauce.power_control import PowerControl
+                    from picon.picon import i2c
+                    from picon.power_control import PowerControl
                     powcon = PowerControl(i2c)
                     """)
         )
@@ -33,10 +33,10 @@ class PowerControl:
             state: True to enable, False to disable
         """
         rail_map = {
-            "5v": "enable_5v",
-            "3v3": "enable_3v3",
-            "12v_1": "enable_12v_1",
-            "12v_2": "enable_12v_2",
+            "5v": "set_5v",
+            "3v3": "set_3v3",
+            "12v_1": "set_12v_1",
+            "12v_2": "set_12v_2",
         }
 
         if rail not in rail_map:
@@ -56,9 +56,9 @@ class PowerControl:
         if not 1 <= num <= 4:
             raise ValueError(f"Current limiter must be 1-4, got {num}")
 
-        self.repl.execute(f"powcon.enable_current_limit_{num}({state})")
+        self.repl.execute(f"powcon.set_current_limit_{num}({state})")
 
-    def get_power_fault(self) -> int:
+    def get_fault(self) -> int:
         """
         Read the power fault status.
 

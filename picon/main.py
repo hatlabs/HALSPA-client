@@ -3,9 +3,9 @@ from time import sleep
 from machine import Pin
 from micropython import const
 
-from sauce.analog_mux import ADCChannel, AnalogMuxADCChannel
-from sauce.pwm import pwm_context_manager
-from sauce.sauce import *
+from picon.analog_mux import ADCChannel, AnalogMuxADCChannel
+from picon.pwm import pwm_context_manager
+from picon.picon import *
 
 SDA_PIN = const(20)
 SCL_PIN = const(21)

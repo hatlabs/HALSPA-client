@@ -1,10 +1,10 @@
 from machine import I2C, Pin
 from micropython import const
 
-from sauce.adc import ads1x15
-from sauce.analog_mux import AnalogMux
-from sauce.power_control import PowerControl
-from sauce.tca9535 import TCA9535
+from picon.adc import ads1x15
+from picon.analog_mux import AnalogMux
+from picon.power_control import PowerControl
+from picon.tca9535 import TCA9535
 
 SDA_PIN = const(20)
 SCL_PIN = const(21)

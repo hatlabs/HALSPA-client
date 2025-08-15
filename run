@@ -35,8 +35,8 @@ function rsync {
   command rsync -av --exclude='__pycache__' --exclude='.git' --exclude='.venv' --exclude='.idea' --exclude='.vscode' . "halspa.local:./src/HALSPA-client/"
 }
 
-function sauce {
-  pushd sauce
+function picon {
+  pushd picon
   ./run "$@"
   popd
 }

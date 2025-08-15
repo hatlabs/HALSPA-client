@@ -47,7 +47,7 @@ function install {
 }
 
 function upload {
-  mpremote cp -r main.py sauce :
+  mpremote cp -r main.py picon :
 }
 
 ################################################################################

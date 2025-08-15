@@ -74,8 +74,8 @@ class TCA9535:
         self.name = f"digexp{expander_num}"
         self.repl.execute(
             dedent("""
-                    from sauce.sauce import i2c, DIGEXP1_ADDR, DIGEXP2_ADDR
-                    from sauce.tca9535 import TCA9535
+                    from picon.picon import i2c, DIGEXP1_ADDR, DIGEXP2_ADDR
+                    from picon.tca9535 import TCA9535
                     """)
         )
         self.repl.execute(

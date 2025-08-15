@@ -13,8 +13,8 @@ class AnalogMux:
         self.name = "anamux"
         self.repl.execute(
             dedent(f"""
-                    from sauce.sauce import i2c
-                    from sauce.analog_mux import AnalogMux
+                    from picon.picon import i2c
+                    from picon.analog_mux import AnalogMux
                     {self.name} = AnalogMux(i2c)
                     """)
         )
