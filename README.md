@@ -1,4 +1,4 @@
-# HALSPA Kettle: Testing Libraries for HALSPA: Hat Labs Spaghetti Board
+# HALSPA Client: Testing Libraries for HALSPA: Hat Labs Spaghetti Board
 
 ## Background
 
@@ -22,8 +22,8 @@ HALSPA subsystems include:
 - 40-pin IDC header for connecting the Pi GPIO header
 - Proto pin areas for additional circuits
 
-## Kettle Introduction
+## Introduction
 
-HALSPA Kettle is a Python library for orchestrating the HALSPA test jig. It is designed to be used with the HALSPA hardware and provides interfaces implementing tests using PyTest. The tests interact with the `picon` MicroPython library running on the Raspberry Pi Pico 2. The tests are designed to be run on the Raspberry Pi using PyTest, which sends MicroPython snippets to the Pico 2 to run individual tests and register the test results.
+The HALSPA client library is a Python library for orchestrating the HALSPA test jig. It is designed to be used with the HALSPA hardware and provides interfaces implementing tests using PyTest. The tests interact with the `picon` MicroPython library running on the Raspberry Pi Pico 2. The tests are designed to be run on the Raspberry Pi using PyTest, which sends MicroPython snippets to the Pico 2 to run individual tests and register the test results.
 
 It is also possible to connect the Raspberry Pi GPIO header directly to the HALSPA hardware. In this case, Raspberry Pi GPIO I/O can be used directly to interact with the HALSPA hardware.

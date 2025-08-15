@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-HALSPA Kettle is a Python library for orchestrating the HALSPA test jig, a hardware testing interface that sits between bed-of-nails test fixtures and a Raspberry Pi. The system consists of two main components:
+The HALSPA client library is a Python library for orchestrating the HALSPA test jig, a hardware testing interface that sits between bed-of-nails test fixtures and a Raspberry Pi. The system consists of two main components:
 
 1. **Client Library** (`halspa/` directory) - Python library that runs on Raspberry Pi using PyTest
 2. **Device Firmware** (`picon/` directory) - MicroPython library running on Raspberry Pi Pico 2
