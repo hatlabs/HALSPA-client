@@ -48,6 +48,22 @@ function install {
 
 function upload {
   mpremote cp -r main.py picon :
+  if [ -f "../custom_calibration.py" ]; then
+    echo "Uploading custom calibration..."
+    mpremote cp ../custom_calibration.py :picon/calibration/custom.py
+  else
+    echo "No custom calibration found (using defaults)"
+  fi
+}
+
+function upload_calibration {
+  if [ ! -f "../custom_calibration.py" ]; then
+    echo "No custom_calibration.py found."
+    echo "Copy calibration_template.py to custom_calibration.py and customize it."
+    exit 1
+  fi
+  mpremote cp ../custom_calibration.py :picon/calibration/custom.py
+  echo "Custom calibration uploaded to device as picon/calibration/custom.py"
 }
 
 ################################################################################

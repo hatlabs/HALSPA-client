@@ -100,7 +100,7 @@ def test_anamux(repl, anamux, digexp2, ads1115_1):
     de2_pin2.configure(1)
     de2_pin2.write(0)
 
-    adc1_0 = ADCChannel(ads1115_1, 0, 1.0, 49e3)
+    adc1_0 = ADCChannel(ads1115_1, 0)
 
     anamux.select(1, 1)
     v = adc1_0.read_voltage()

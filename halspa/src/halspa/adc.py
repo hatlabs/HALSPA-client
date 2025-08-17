@@ -31,9 +31,9 @@ class ADS1115:
         self.name = f"ads{ads_num}"
         self.repl.execute(
             dedent(f"""
+                    from picon.adc import CalibratedADS1115
                     from picon.picon import i2c, ADC1_ADDR, ADC2_ADDR
-                    from ads1x15 import ADS1115
-                    {self.name} = ADS1115(i2c, ADC{ads_num}_ADDR, {gain})
+                    {self.name} = CalibratedADS1115(i2c, ADC{ads_num}_ADDR, {gain})
                     """)
         )
 
@@ -85,30 +85,25 @@ class ADS1115:
 class ADCChannel:
     """
     ADC class to access the HALSPA ADC (Analog-to-Digital Converter) functionality.
+    Uses automatic calibration from the picon calibration system.
     """
 
     def __init__(
         self,
         ads1115: ADS1115,
         channel: int,
-        scale: float = 1.0,
-        rb: float | None = None,
     ) -> None:
         """
-        Initialize the ADC class.
+        Initialize the ADC class with automatic calibration.
+        
+        Args:
+            ads1115: ADS1115 instance
+            channel: Channel number (0-3)
         """
         self.ads1115 = ads1115
         self.name = f"ads{ads1115.ads_num}_ch{channel}"
         self.channel = channel
-        self.scale = scale
-        self.rb = rb
-        self.ads1115.repl.execute(
-            dedent(f"""
-                    from picon.adc import ADCChannel
-
-                    {self.name} = ADCChannel({ads1115.name}, {channel}, {scale}, {rb})
-                    """)
-        )
+        self.ads1115.repl.execute(f"{self.name} = {ads1115.name}.get_channel({channel})")
 
     def read_raw(self) -> int:
         """
@@ -150,20 +145,26 @@ class ADCDiff:
         channel1: int,
         channel2: int,
         scale: float = 1.0,
-        rb: float | None = None,
     ) -> None:
+        """
+        Initialize differential ADC measurement.
+        
+        Args:
+            ads1115: ADS1115 instance
+            channel1: Positive channel (0-3)
+            channel2: Negative channel (0-3)
+            scale: Additional scale factor for differential measurement
+        """
         self.ads1115 = ads1115
         self.name = f"ads{ads1115.ads_num}_diff_{channel1}_{channel2}"
         self.channel1 = channel1
         self.channel2 = channel2
         self.scale = scale
-        self.rb = rb
 
         self.ads1115.repl.execute(
             dedent(f"""
                     from picon.adc import ADCDiff
-
-                    {self.name} = ADCDiff({ads1115.name}, {channel1}, {channel2}, {scale}, {rb})
+                    {self.name} = ADCDiff({ads1115.name}, {channel1}, {channel2}, {scale})
                     """)
         )
 

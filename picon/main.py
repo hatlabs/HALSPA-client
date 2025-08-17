@@ -3,9 +3,9 @@ from time import sleep
 from machine import Pin
 from micropython import const
 
-from picon.analog_mux import ADCChannel, AnalogMuxADCChannel
-from picon.pwm import pwm_context_manager
+from picon.adc import CalibratedADS1115, AnalogMuxADCChannel
 from picon.picon import *
+from picon.pwm import pwm_context_manager
 
 SDA_PIN = const(20)
 SCL_PIN = const(21)
@@ -26,7 +26,8 @@ def main():
 
 
 def test_analog():
-    adc1_ch0 = ADCChannel(adc1, 0, rt=67.2e3)
+    # Use the already calibrated ADC instances
+    adc1_ch0 = ads1.get_channel(0)
     select_lpfilt_output = anamux.get_pin_selector(1, 1)
     select_opamp_output = anamux.get_pin_selector(1, 0)
     select_level_shifter_output = anamux.get_pin_selector(1, 2)
@@ -44,9 +45,9 @@ def test_analog():
 
     p12vlimit2cs = AnalogMuxADCChannel(select_12vl2cs, adc1_ch0)
 
-    pwm_via_opamp = ADCChannel(adc1, 1, scale=2.733 / 0.379)
-    output_limit_12v1 = ADCChannel(adc1, 2, rt=89.83e3)
-    raw_3v3 = ADCChannel(adc1, 3, rt=53.91e3)
+    pwm_via_opamp = ads1.get_channel(1)
+    output_limit_12v1 = ads1.get_channel(2)
+    raw_3v3 = ads1.get_channel(3)
 
     sleep(0.1)
 
