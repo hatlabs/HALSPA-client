@@ -1,4 +1,5 @@
 from textwrap import dedent
+from typing import Dict, List
 
 import halspa.repl
 from halspa.analog_mux import AnalogMux
@@ -95,7 +96,7 @@ class ADCChannel:
     ) -> None:
         """
         Initialize the ADC class with automatic calibration.
-        
+
         Args:
             ads1115: ADS1115 instance
             channel: Channel number (0-3)
@@ -103,7 +104,9 @@ class ADCChannel:
         self.ads1115 = ads1115
         self.name = f"ads{ads1115.ads_num}_ch{channel}"
         self.channel = channel
-        self.ads1115.repl.execute(f"{self.name} = {ads1115.name}.get_channel({channel})")
+        self.ads1115.repl.execute(
+            f"{self.name} = {ads1115.name}.get_channel({channel})"
+        )
 
     def read_raw(self) -> int:
         """
@@ -117,6 +120,25 @@ class ADCChannel:
             raise RuntimeError(f"Invalid ADC raw value received: {output}")
         except TypeError:
             raise RuntimeError(f"Invalid ADC raw value type received: {type(output)}")
+
+    def read_uncalibrated_voltage(self) -> float:
+        """
+        Read the uncalibrated voltage from the specified channel.
+        """
+        output = self.ads1115.repl.execute(
+            f"print({self.name}.read_uncalibrated_voltage())"
+        )
+
+        try:
+            return float(output)
+        except ValueError:
+            raise RuntimeError(
+                f"Invalid ADC uncalibrated voltage value received: {output}"
+            )
+        except TypeError:
+            raise RuntimeError(
+                f"Invalid ADC uncalibrated voltage value type received: {type(output)}"
+            )
 
     def read_voltage(self) -> float:
         """
@@ -144,27 +166,27 @@ class ADCDiff:
         ads1115: ADS1115,
         channel1: int,
         channel2: int,
-        scale: float = 1.0,
     ) -> None:
         """
-        Initialize differential ADC measurement.
-        
+        Initialize differential ADC measurement with automatic gain calibration.
+
         Args:
             ads1115: ADS1115 instance
             channel1: Positive channel (0-3)
             channel2: Negative channel (0-3)
-            scale: Additional scale factor for differential measurement
+            
+        Raises:
+            ValueError: If channel gains differ by more than 1% (raised by picon side)
         """
         self.ads1115 = ads1115
         self.name = f"ads{ads1115.ads_num}_diff_{channel1}_{channel2}"
         self.channel1 = channel1
         self.channel2 = channel2
-        self.scale = scale
 
         self.ads1115.repl.execute(
             dedent(f"""
                     from picon.adc import ADCDiff
-                    {self.name} = ADCDiff({ads1115.name}, {channel1}, {channel2}, {scale})
+                    {self.name} = ADCDiff({ads1115.name}, {channel1}, {channel2})
                     """)
         )
 
@@ -248,3 +270,67 @@ class AnalogMuxADCChannel:
             raise RuntimeError(
                 f"Invalid ADC voltage value type received: {type(output)}"
             )
+
+
+def measure_all_channels(ads1: ADS1115, ads2: ADS1115) -> Dict[int, List[Dict]]:
+    """
+    Measure all channels on both ADCs and return structured data.
+    
+    Args:
+        ads1: ADS1115 instance for ADC1
+        ads2: ADS1115 instance for ADC2
+    
+    Returns:
+        Dictionary with ADC numbers as keys and list of channel measurements as values.
+        Each measurement contains: channel, raw_value, uncalibrated_voltage, calibrated_voltage, error
+    """
+    measurements = {}
+    
+    for adc_num, ads in [(1, ads1), (2, ads2)]:
+        measurements[adc_num] = []
+        
+        for channel in range(4):
+            measurement = {
+                'channel': channel,
+                'raw_value': None,
+                'uncalibrated_voltage': None,
+                'calibrated_voltage': None,
+                'error': None
+            }
+            
+            try:
+                adc_channel = ADCChannel(ads, channel)
+                measurement['raw_value'] = adc_channel.read_raw()
+                measurement['uncalibrated_voltage'] = adc_channel.read_uncalibrated_voltage()
+                measurement['calibrated_voltage'] = adc_channel.read_voltage()
+            except Exception as e:
+                measurement['error'] = str(e)
+            
+            measurements[adc_num].append(measurement)
+    
+    return measurements
+
+
+def print_measurements(measurements: Dict[int, List[Dict]]) -> None:
+    """
+    Print measurements in formatted output.
+    
+    Args:
+        measurements: Dictionary returned by measure_all_channels()
+    """
+    for adc_num, channel_data in measurements.items():
+        print(f"ADC{adc_num} (I2C 0x{0x47 + adc_num:02x}) Uncalibrated Voltages:")
+        print("-" * 40)
+        
+        for measurement in channel_data:
+            channel = measurement['channel']
+            
+            if measurement['error']:
+                print(f"  Channel {channel}: Error - {measurement['error']}")
+            else:
+                uncal_v = measurement['uncalibrated_voltage']
+                cal_v = measurement['calibrated_voltage']
+                raw = measurement['raw_value']
+                print(f"  Channel {channel}: {uncal_v:8.4f}V uncal, {cal_v:8.4f}V cal (raw: {raw:5d})")
+        
+        print()
