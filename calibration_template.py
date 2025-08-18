@@ -32,14 +32,14 @@ def _calc_12v_lim(v_measured: float) -> float:
     return 2.0 * v_measured  # 2.0 A/V
 
 
-CURRENT_LIMIT_12V_1 = _calc_12v_lim(v_measured=1.0)  # Update with measured voltage
-CURRENT_LIMIT_12V_2 = _calc_12v_lim(v_measured=1.0)  # Update with measured voltage
+CURRENT_LIMIT_12V_1 = _calc_12v_lim(v_measured=1.0)  # Measure and update
+CURRENT_LIMIT_12V_2 = _calc_12v_lim(v_measured=1.0)  # Measure and update
 
 #######################################################################
 # Current limits for 3.3-5V Limit 1-4
 #
 # The 3.3-5V current limiters are implemented using AP22652A current limiters.
-# They have a programmable current limit set by a trimmer potentiometer
+# They have a programmable current limit set by a 200 kOhm trimmer potentiometer
 # connected to the AP22652A's ILIM pin.
 #
 # Calibration Process: Measure the resistance between the test pads
@@ -55,10 +55,10 @@ def _calc_3v3_curlim(r_meas: float) -> float:
     return 30321 / (r_meas / 1000.0) ** 1.055
 
 
-CURRENT_LIMIT_3V3_1 = _calc_3v3_curlim(r_meas=50.0)  # Update with measured resistance
-CURRENT_LIMIT_3V3_2 = _calc_3v3_curlim(r_meas=50.0)  # Update with measured resistance
-CURRENT_LIMIT_3V3_3 = _calc_3v3_curlim(r_meas=50.0)  # Update with measured resistance
-CURRENT_LIMIT_3V3_4 = _calc_3v3_curlim(r_meas=50.0)  # Update with measured resistance
+CURRENT_LIMIT_3V3_1 = _calc_3v3_curlim(r_meas=50.0)  # Measure and update
+CURRENT_LIMIT_3V3_2 = _calc_3v3_curlim(r_meas=50.0)  # Measure and update
+CURRENT_LIMIT_3V3_3 = _calc_3v3_curlim(r_meas=50.0)  # Measure and update
+CURRENT_LIMIT_3V3_4 = _calc_3v3_curlim(r_meas=50.0)  # Measure and update
 
 #######################################################################
 # Op-amp 1-4 gain calibration
@@ -100,10 +100,16 @@ OPAMP_GAIN_4 = _calc_opamp_gain(rf=50e3, r2=50e3)  # Update with measured values
 # where Rb is the voltage divider bottom resistor and Rbt is the voltage divider
 # total resistance.
 #
-# Calibration Process:
+# Calibration Process (alternative 1):
 # 1. Measure Rb between the G and middle test pads
 # 2. Measure Rbt between the G and T test pads.
 # 3. Validate that Rbt is approximately 100 kOhm.
+#
+# Calibration Process (alternative 2):
+# 1. Connect a known voltage (e.g. 1.0V) to the ADC input.
+# 2. Run the halspa/measure_raw_voltages.py script to measure the raw voltage.
+# 3. Calculate the gain as Gain = V_measured / V_input, where V_measured is the
+#    measured raw voltage and V_input is the known input voltage.
 
 
 def _calc_adc_gain(rb: float, rbt: float) -> float:
@@ -112,16 +118,16 @@ def _calc_adc_gain(rb: float, rbt: float) -> float:
     return rb / rbt  # Gain calculation based on resistors
 
 
-ADC1_CH0_SCALE = _calc_adc_gain(rb=50e3, rbt=100e3)  # Update with measured values
-ADC1_CH1_SCALE = _calc_adc_gain(rb=50e3, rbt=100e3)  # Update with measured values
-ADC1_CH2_SCALE = _calc_adc_gain(rb=50e3, rbt=100e3)  # Update with measured values
-ADC1_CH3_SCALE = _calc_adc_gain(rb=50e3, rbt=100e3)  # Update with measured values
+ADC1_CH0_GAIN = _calc_adc_gain(rb=50e3, rbt=100e3)  # Update with measured values
+ADC1_CH1_GAIN = _calc_adc_gain(rb=50e3, rbt=100e3)  # Update with measured values
+ADC1_CH2_GAIN = _calc_adc_gain(rb=50e3, rbt=100e3)  # Update with measured values
+ADC1_CH3_GAIN = _calc_adc_gain(rb=50e3, rbt=100e3)  # Update with measured values
 
-ADC2_CH0_SCALE = _calc_adc_gain(rb=50e3, rbt=100e3)  # Update with measured values
-ADC2_CH1_SCALE = _calc_adc_gain(rb=50e3, rbt=100e3)  # Update with measured values
-ADC2_CH2_SCALE = _calc_adc_gain(rb=50e3, rbt=100e3)  # Update with measured values
-ADC2_CH3_SCALE = _calc_adc_gain(rb=50e3, rbt=100e3)  # Update with measured values
+ADC2_CH0_GAIN = _calc_adc_gain(rb=50e3, rbt=100e3)  # Update with measured values
+ADC2_CH1_GAIN = _calc_adc_gain(rb=50e3, rbt=100e3)  # Update with measured values
+ADC2_CH2_GAIN = _calc_adc_gain(rb=50e3, rbt=100e3)  # Update with measured values
+ADC2_CH3_GAIN = _calc_adc_gain(rb=50e3, rbt=100e3)  # Update with measured values
 
 # Convenience arrays for programmatic access (required by ADC system)
-ADC1_SCALES = [ADC1_CH0_SCALE, ADC1_CH1_SCALE, ADC1_CH2_SCALE, ADC1_CH3_SCALE]
-ADC2_SCALES = [ADC2_CH0_SCALE, ADC2_CH1_SCALE, ADC2_CH2_SCALE, ADC2_CH3_SCALE]
+ADC1_GAINS = [ADC1_CH0_GAIN, ADC1_CH1_GAIN, ADC1_CH2_GAIN, ADC1_CH3_GAIN]
+ADC2_GAINS = [ADC2_CH0_GAIN, ADC2_CH1_GAIN, ADC2_CH2_GAIN, ADC2_CH3_GAIN]
