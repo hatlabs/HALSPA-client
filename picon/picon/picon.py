@@ -27,7 +27,7 @@ ads2 = CalibratedADS1115(i2c, ADC2_ADDR, 1)  # Auto-detects adc_num=2
 digexp1 = TCA9535(i2c, address=DIGEXP1_ADDR)
 digexp2 = TCA9535(i2c, address=DIGEXP2_ADDR)
 
-# Auto-calibrated channels - scale is applied automatically
+# Auto-calibrated channels - gain is applied automatically
 adc1_ch0 = ads1.get_channel(0)
 adc1_ch1 = ads1.get_channel(1)
 adc1_ch2 = ads1.get_channel(2)

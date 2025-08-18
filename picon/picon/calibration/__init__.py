@@ -5,13 +5,13 @@ Automatically imports calibration constants, preferring custom values
 over defaults when available.
 
 Usage:
-    from picon.calibration import ADC1_CH0_SCALE, ADC1_SCALES
+    from picon.calibration import ADC1_CH0_GAIN, ADC1_GAINS
     
     # Direct constant access
-    scale = ADC1_CH0_SCALE
+    gain = ADC1_CH0_GAIN
     
     # Array access
-    scale = ADC1_SCALES[0]  # Channel 0
+    gain = ADC1_GAINS[0]  # Channel 0
 """
 
 # Try to import from custom calibration first, fall back to defaults
