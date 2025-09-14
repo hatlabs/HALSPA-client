@@ -1,5 +1,3 @@
-from typing import Callable
-
 import ads1x15
 
 
@@ -84,17 +82,17 @@ class ADCDiff:
             calibrated_adc: CalibratedADS1115 instance
             adc_channel1: Positive channel (0-3)
             adc_channel2: Negative channel (0-3)
-            
+
         Raises:
             ValueError: If channel gains differ by more than 1%
         """
         self.calibrated_adc = calibrated_adc
         self.adc_channel1 = adc_channel1
         self.adc_channel2 = adc_channel2
-        
+
         # Get calibration gains automatically
         from picon.calibration import ADC1_GAINS, ADC2_GAINS
-        
+
         if calibrated_adc.adc_num == 1:
             ch1_gain = ADC1_GAINS[adc_channel1]
             ch2_gain = ADC1_GAINS[adc_channel2]
@@ -103,14 +101,14 @@ class ADCDiff:
             ch2_gain = ADC2_GAINS[adc_channel2]
         else:
             raise ValueError(f"Invalid ADC number: {calibrated_adc.adc_num}")
-        
+
         # Validate gains are within 1% of each other
         if abs(ch1_gain - ch2_gain) / ch1_gain > 0.01:
             raise ValueError(
                 f"Channel gains differ by more than 1%: "
                 f"ch{adc_channel1}={ch1_gain:.4f}, ch{adc_channel2}={ch2_gain:.4f}"
             )
-        
+
         # Use channel1 gain for automatic scaling
         self.gain = ch1_gain
 
@@ -125,7 +123,7 @@ class ADCDiff:
 
 
 class AnalogMuxADCChannel:
-    def __init__(self, select_pin_func: Callable[[], None], adc_channel: ADCChannel):
+    def __init__(self, select_pin_func, adc_channel):
         self.select_pin = select_pin_func
         self.adc_channel = adc_channel
 
