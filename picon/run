@@ -32,11 +32,78 @@ readonly SCRIPT="$PROJECT_ROOT/$(basename "$0")"
 # Project-specific commands follow.
 
 function install {
-  if [ -d /Volumes/RPI-RP2 ]; then
-    echo "Copying Micropython"
-    cp RPI_PICO-20241129-v1.24.1.uf2 /Volumes/RPI-RP2
-    sleep 5
-    mpremote fs ls  # Test that the Pico is connected
+  mpy_image="../RPI_PICO2-20250911-v1.26.1.uf2"
+  # Detect operating system
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS
+    if [ -d /Volumes/RP2350 ]; then
+      echo "Copying MicroPython (macOS)"
+      cp "$mpy_image" /Volumes/RP2350
+      sleep 5
+      mpremote fs ls  # Test that the Pico is connected
+    fi
+  elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    # Linux/Raspberry Pi OS
+    # Check for typical mount points on Raspberry Pi OS
+    rpi_mount_point=""
+    for mount_point in /media/$USER/RPI-RP2 /media/pi/RPI-RP2 /mnt/RPI-RP2; do
+      if [ -d "$mount_point" ]; then
+        rpi_mount_point="$mount_point"
+        break
+      fi
+    done
+
+    # If not mounted, try to find and mount the Pico device
+    if [ -z "$rpi_mount_point" ]; then
+      echo "Pico not mounted, searching for device..."
+
+      # Look for the Pico partition (RPI vendor with RP2040/RP2350 model)
+      pico_device=""
+      if command -v lsblk >/dev/null 2>&1; then
+        # Look for RPI vendor with RP* model, then find its first partition
+        pico_base_device=$(lsblk -no NAME,VENDOR,MODEL | awk '$2=="RPI" && $3~/^RP/ {print $1}' | head -1)
+        if [ -n "$pico_base_device" ]; then
+          # Find the first partition of this device
+          pico_device="/dev/${pico_base_device}1"
+        fi
+      fi
+
+      if [ -n "$pico_device" ]; then
+        echo "Found Pico device: $pico_device"
+        rpi_mount_point="/mnt/RPI-RP2"
+
+        # Create mount point if it doesn't exist
+        if [ ! -d "$rpi_mount_point" ]; then
+          echo "Creating mount point: $rpi_mount_point"
+          sudo mkdir -p "$rpi_mount_point"
+        fi
+
+        # Mount the device
+        echo "Mounting $pico_device to $rpi_mount_point"
+        sudo mount "$pico_device" "$rpi_mount_point"
+
+        # Set a flag to unmount later
+        pico_was_mounted_by_script=true
+      else
+        echo "Pico device not found. Make sure the Pico is in bootloader mode."
+      fi
+    fi
+
+    if [ -n "$rpi_mount_point" ]; then
+      echo "Copying MicroPython (Raspberry Pi OS) to $rpi_mount_point"
+      if [ "${pico_was_mounted_by_script:-false}" = true ]; then
+        sudo cp "$mpy_image" "$rpi_mount_point"
+        sudo umount "$rpi_mount_point"
+        echo "Unmounted $rpi_mount_point"
+      else
+        sudo cp "$mpy_image" "$rpi_mount_point"
+      fi
+      echo "Waiting for Pico to reconnect..."
+      sleep 10
+      mpremote fs ls  # Test that the Pico is connected
+    fi
+  else
+    echo "Unknown OS: $OSTYPE - skipping MicroPython firmware installation"
   fi
 
   mpremote mip install https://raw.githubusercontent.com/robert-hh/ads1x15/refs/heads/master/ads1x15.py
