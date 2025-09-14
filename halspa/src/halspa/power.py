@@ -45,6 +45,42 @@ class PowerControl:
         method = rail_map[rail]
         self.repl.execute(f"powcon.{method}({state})")
 
+    def set_5v(self, state: bool = True) -> None:
+        """
+        Enable or disable the 5V power rail.
+
+        Args:
+            state: True to enable, False to disable
+        """
+        self.repl.execute(f"powcon.set_5v({state})")
+
+    def set_3v3(self, state: bool = True) -> None:
+        """
+        Enable or disable the 3.3V power rail.
+
+        Args:
+            state: True to enable, False to disable
+        """
+        self.repl.execute(f"powcon.set_3v3({state})")
+
+    def set_12v_1(self, state: bool = True) -> None:
+        """
+        Enable or disable the 12V_1 power rail.
+
+        Args:
+            state: True to enable, False to disable
+        """
+        self.repl.execute(f"powcon.set_12v_1({state})")
+
+    def set_12v_2(self, state: bool = True) -> None:
+        """
+        Enable or disable the 12V_2 power rail.
+
+        Args:
+            state: True to enable, False to disable
+        """
+        self.repl.execute(f"powcon.set_12v_2({state})")
+
     def set_curlim(self, num: int, state: bool = True) -> None:
         """
         Enable or disable the current limiter output.
