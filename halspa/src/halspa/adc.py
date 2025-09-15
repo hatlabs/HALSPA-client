@@ -174,7 +174,7 @@ class ADCDiff:
             ads1115: ADS1115 instance
             channel1: Positive channel (0-3)
             channel2: Negative channel (0-3)
-            
+
         Raises:
             ValueError: If channel gains differ by more than 1% (raised by picon side)
         """
@@ -275,62 +275,66 @@ class AnalogMuxADCChannel:
 def measure_all_channels(ads1: ADS1115, ads2: ADS1115) -> Dict[int, List[Dict]]:
     """
     Measure all channels on both ADCs and return structured data.
-    
+
     Args:
         ads1: ADS1115 instance for ADC1
         ads2: ADS1115 instance for ADC2
-    
+
     Returns:
         Dictionary with ADC numbers as keys and list of channel measurements as values.
         Each measurement contains: channel, raw_value, uncalibrated_voltage, calibrated_voltage, error
     """
     measurements = {}
-    
+
     for adc_num, ads in [(1, ads1), (2, ads2)]:
         measurements[adc_num] = []
-        
+
         for channel in range(4):
             measurement = {
-                'channel': channel,
-                'raw_value': None,
-                'uncalibrated_voltage': None,
-                'calibrated_voltage': None,
-                'error': None
+                "channel": channel,
+                "raw_value": None,
+                "uncalibrated_voltage": None,
+                "calibrated_voltage": None,
+                "error": None,
             }
-            
+
             try:
                 adc_channel = ADCChannel(ads, channel)
-                measurement['raw_value'] = adc_channel.read_raw()
-                measurement['uncalibrated_voltage'] = adc_channel.read_uncalibrated_voltage()
-                measurement['calibrated_voltage'] = adc_channel.read_voltage()
+                measurement["raw_value"] = adc_channel.read_raw()
+                measurement["uncalibrated_voltage"] = (
+                    adc_channel.read_uncalibrated_voltage()
+                )
+                measurement["calibrated_voltage"] = adc_channel.read_voltage()
             except Exception as e:
-                measurement['error'] = str(e)
-            
+                measurement["error"] = str(e)
+
             measurements[adc_num].append(measurement)
-    
+
     return measurements
 
 
 def print_measurements(measurements: Dict[int, List[Dict]]) -> None:
     """
     Print measurements in formatted output.
-    
+
     Args:
         measurements: Dictionary returned by measure_all_channels()
     """
     for adc_num, channel_data in measurements.items():
         print(f"ADC{adc_num} (I2C 0x{0x47 + adc_num:02x}) Uncalibrated Voltages:")
         print("-" * 40)
-        
+
         for measurement in channel_data:
-            channel = measurement['channel']
-            
-            if measurement['error']:
+            channel = measurement["channel"]
+
+            if measurement["error"]:
                 print(f"  Channel {channel}: Error - {measurement['error']}")
             else:
-                uncal_v = measurement['uncalibrated_voltage']
-                cal_v = measurement['calibrated_voltage']
-                raw = measurement['raw_value']
-                print(f"  Channel {channel}: {uncal_v:8.4f}V uncal, {cal_v:8.4f}V cal (raw: {raw:5d})")
-        
+                uncal_v = measurement["uncalibrated_voltage"]
+                cal_v = measurement["calibrated_voltage"]
+                raw = measurement["raw_value"]
+                print(
+                    f"  Channel {channel}: {uncal_v:8.4f}V uncal, {cal_v:8.4f}V cal (raw: {raw:5d})"
+                )
+
         print()
