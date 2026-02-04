@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+#
+# usage: ./run command [argument ...]
+#
+# Commands used during development / CI.
+
+set -o nounset
+set -o pipefail
+set -o errexit
+
+PROJECT_ROOT=${0%/*}
+if [[ $0 != $PROJECT_ROOT && $PROJECT_ROOT != "" ]]; then
+  cd "$PROJECT_ROOT"
+fi
+readonly PROJECT_ROOT=$(pwd)
+
+function help {
+  printf "%s <task> [args]\n\nTasks:\n" "${0}"
+  compgen -A function | grep -v "^_" | cat -n
+}
+
+function test {
+  uv run pytest "${@}"
+}
+
+function lint {
+  uv run python -m py_compile src/halspa/*.py
+}
+
+TIMEFORMAT=$'\nTask completed in %3lR'
+time "${@:-help}"
