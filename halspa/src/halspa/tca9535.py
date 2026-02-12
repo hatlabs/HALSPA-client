@@ -30,6 +30,11 @@ class TCA9535Pin:
         current = bool(self.tca9535.output & (1 << self.pin))
         self.tca9535.write_bit(self.pin, not current)
 
+    @property
+    def is_output(self) -> bool:
+        """Return True if the pin is configured as output."""
+        return not bool(self.tca9535.configuration & (1 << self.pin))
+
     def configure(self, output: bool) -> None:
         """Configure pin direction. output=True for output, False for input."""
         if output:
